@@ -10,14 +10,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Fractal_Modeling;
 
 namespace FractalModeling
 {
     public partial class LSystemForm : Form
     {
         private LSystem _ls = new();
-        private Bitmap _bitmap = null;
+        private Bitmap? _bitmap = null;
         private Color _penColor = Color.RoyalBlue;
+
+        private CancellationTokenSource? _cts = null;
 
         private string _resultFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -83,7 +86,7 @@ namespace FractalModeling
 
         private void btnColor_Click(object sender, EventArgs e)
         {
-            var cd = new ColorDialog { Color = _penColor };
+            using var cd = new ColorDialog { Color = _penColor };
             if (cd.ShowDialog() == DialogResult.OK)
             {
                 _penColor = cd.Color;
@@ -93,7 +96,7 @@ namespace FractalModeling
 
         private void btnLoadParams_Click(object sender, EventArgs e)
         {
-            var dlg = new OpenFileDialog { Filter = "L-система (*.lsys)|*.lsys" };
+            using var dlg = new OpenFileDialog { Filter = "L-система (*.lsys)|*.lsys" };
             if (dlg.ShowDialog() != DialogResult.OK) return;
 
             _ls = LSystem.LoadFromFile(dlg.FileName);
@@ -110,7 +113,7 @@ namespace FractalModeling
         private void btnSaveParams_Click(object sender, EventArgs e)
         {
             ApplyFieldsToModel();
-            var dlg = new SaveFileDialog
+            using var dlg = new SaveFileDialog
             {
                 Filter = "L-система (*.lsys)|*.lsys",
                 FileName = _ls.Name.Replace(" ", "_")
@@ -124,7 +127,7 @@ namespace FractalModeling
         private void btnSaveImage_Click(object sender, EventArgs e)
         {
             if (_bitmap == null) { MessageBox.Show("Сначала постройте фрактал."); return; }
-            var dlg = new SaveFileDialog
+            using var dlg = new SaveFileDialog
             {
                 Filter = "PNG|*.png|BMP|*.bmp",
                 FileName = _ls.Name.Replace(" ", "_") + "_lsys"
@@ -164,81 +167,128 @@ namespace FractalModeling
                 System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : def;
 
-        private void btnBuild_Click(object sender, EventArgs e)
+        private async void btnBuild_Click(object sender, EventArgs e)
         {
-            try
+            if (_cts != null)
             {
-                ApplyFieldsToModel();
+                _cts.Cancel();
+                _cts = null;
+            }
 
-                int n = (int)nudIterations.Value;
-                var sw = Stopwatch.StartNew();
+            ApplyFieldsToModel();
+            int n = (int)nudIterations.Value;
+            int W = picBox.Width > 10 ? picBox.Width : 800;
+            int H = picBox.Height > 10 ? picBox.Height : 600;
 
-                // 1. Генерируем строку
-                string sentence = _ls.Generate(n);
+            SetBusy(true);
 
-                // 2. Вычисляем автомасштаб
-                var bbox = _ls.ComputeBoundingBox(n, 0f);
-                int W = picBox.Width > 10 ? picBox.Width : 600;
-                int H = picBox.Height > 10 ? picBox.Height : 500;
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
 
-                float margin = 20f;
-                float scaleX = bbox.Width > 0 ? (W - 2 * margin) / bbox.Width : 1f;
-                float scaleY = bbox.Height > 0 ? (H - 2 * margin) / bbox.Height : 1f;
-                float scale = Math.Min(scaleX, scaleY);
-                float sx = margin - bbox.X * scale;
-                float sy = margin - bbox.Y * scale;
+            var lsCopy = CloneLSystem(_ls);
 
-                // 3. Интерпретируем
-                float savedStep = _ls.StepSize;
-                _ls.StepSize = scale;
-                var lines = _ls.Interpret(sentence, sx, sy, 0f);
-                _ls.StepSize = savedStep;
+            await LSystemRenderer.RenderAsync(
+                ls: lsCopy,
+                iterations: n,
+                bitmapWidth: W,
+                bitmapHeight: H,
+                penColor: _penColor,
 
-                // 4. Рисуем
-                _bitmap?.Dispose();
-                _bitmap = new Bitmap(W, H);
-                var g = Graphics.FromImage(_bitmap);
-                g.Clear(Color.White);
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                var pen = new Pen(_penColor, 1f);
-                foreach (var (from, to) in lines)
-                    g.DrawLine(pen, from, to);
-
-                sw.Stop();
-
-                // 5. Оценка размерности
-                double dim = ResultLogger.EstimateBoxCountDim(lines);
-
-                // 6. Показываем
-                picBox.Image = _bitmap;
-                lblTime.Text = $"Время: {sw.ElapsedMilliseconds} мс";
-                lblInfo.Text = $"Строка: {sentence.Length} симв.  |  " +
-                                $"Отрезков: {lines.Count}  |  D ≈ {dim:F3}";
-
-                // 7. Пишем в CSV
-                ResultLogger.Append(_resultFile, new GenerationResult
+                progressCallback: (previewBmp, drawnSoFar) =>
                 {
-                    FractalName = _ls.Name,
-                    Method = "L-system",
-                    Iterations = n,
-                    ElapsedMs = sw.ElapsedMilliseconds,
-                    ElementCount = lines.Count,
-                    StringLength = sentence.Length,
-                    FractalDim = dim,
-                    Notes = $"Delta={_ls.Delta}",
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Ошибка: " + ex.Message, "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+                    this.Invoke(() =>
+                    {
+                        var old = picBox.Image;
+                        picBox.Image = previewBmp;
+                        old?.Dispose();
+                        lblInfo.Text = $"Рисую... отрезков: {drawnSoFar:N0}";
+                    });
+                },
+
+                completedCallback: (finalBmp, totalLines, elapsedMs, cancelled) =>
+                {
+                    this.Invoke(() =>
+                    {
+                        SetBusy(false);
+
+                        if (cancelled)
+                        {
+                            lblTime.Text = "Остановлено.";
+                            lblInfo.Text = $"Нарисовано отрезков: {totalLines:N0}";
+                            if (finalBmp != null)
+                            {
+                                _bitmap?.Dispose();
+                                _bitmap = finalBmp;
+                                picBox.Image = _bitmap;
+                            }
+                            return;
+                        }
+
+                        _bitmap?.Dispose();
+                        _bitmap = finalBmp;
+                        picBox.Image = _bitmap;
+
+                        double dim = FractalPresets.ResultLogger.EstimateBoxCountDim(null);
+
+
+                        lblTime.Text = $"Время: {elapsedMs} мс";
+                        lblInfo.Text = $"Отрезков: {totalLines:N0}  |  n={n}";
+
+                        FractalPresets.ResultLogger.Append(_resultFile, new FractalPresets.GenerationResult
+                        {
+                            FractalName = lsCopy.Name,
+                            Method = "L-system",
+                            Iterations = n,
+                            ElapsedMs = elapsedMs,
+                            ElementCount = totalLines,
+                            StringLength = 0,
+                            FractalDim = 0,
+                            Notes = $"Delta={lsCopy.Delta}",
+                        });
+                    });
+                },
+
+                ct: token
+            );
+        }
+
+        private void SetBusy(bool busy)
+        {
+            btnBuild.Enabled = !busy;
+            btnCancel.Enabled = busy;
+            progressBar.Visible = busy;
+            cmbFractal.Enabled = !busy;
+            nudIterations.Enabled = !busy;
+
+            if (!busy) progressBar.Visible = false;
         }
 
         private void LSystemForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             _bitmap?.Dispose();
             base.OnFormClosed(e);
+        }
+
+        private static LSystem CloneLSystem(LSystem src)
+        {
+            var dst = new LSystem
+            {
+                Name = src.Name,
+                Axiom = src.Axiom,
+                Delta = src.Delta,
+                StepSize = src.StepSize,
+                StepGrowth = src.StepGrowth,
+                StepVariance = src.StepVariance,
+            };
+            foreach (var (sym, prod) in src.GetRules())
+                dst.AddRule(sym, prod);
+            return dst;
+        }
+
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            _cts?.Cancel();
+            btnCancel.Enabled = false;
         }
     }
 }
