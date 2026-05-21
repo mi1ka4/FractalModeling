@@ -140,18 +140,18 @@ namespace FractalModeling
 
         private void btnGoIFS_Click(object sender, EventArgs e)
         {
-            //var f = new IFSForm();
-            //f.Show();
-            //this.Hide();
-            //f.FormClosed += (s, args) => this.Show();
+            var f = new IFSForm();
+            f.Show();
+            this.Hide();
+            f.FormClosed += (s, args) => this.Show();
         }
 
         private void btnGoAnalysis_Click(object sender, EventArgs e)
         {
-            //var f = new AnalysisForm();
-            //f.Show();
-            //this.Hide();
-            //f.FormClosed += (s, args) => this.Show();
+            var f = new AnalysisForm();
+            f.Show();
+            this.Hide();
+            f.FormClosed += (s, args) => this.Show();
         }
         private void ApplyFieldsToModel()
         {
@@ -228,13 +228,15 @@ namespace FractalModeling
                         _bitmap = finalBmp;
                         picBox.Image = _bitmap;
 
-                        double dim = FractalPresets.ResultLogger.EstimateBoxCountDim(null);
+                        double dim = ResultLogger.EstimateBoxCountDim(null);
+
+                        
 
 
                         lblTime.Text = $"Время: {elapsedMs} мс";
                         lblInfo.Text = $"Отрезков: {totalLines:N0}  |  n={n}";
 
-                        FractalPresets.ResultLogger.Append(_resultFile, new FractalPresets.GenerationResult
+                        ResultLogger.Append(_resultFile, new GenerationResult
                         {
                             FractalName = lsCopy.Name,
                             Method = "L-system",

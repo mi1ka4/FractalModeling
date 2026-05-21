@@ -1,4 +1,5 @@
 ﻿using System.Reflection.Emit;
+using Fractal_Modeling;
 
 namespace FractalModeling
 {
@@ -70,74 +71,74 @@ namespace FractalModeling
 
         // ── IFS ───────────────────────────────────────────────────────────────
 
-        //    public static IFSGenerator GetIFS(int index)
-        //    {
-        //        return index switch
-        //        {
-        //            0 => Sierpinski_IFS(),
-        //            1 => Koch_IFS(),
-        //            2 => Dragon_IFS(),
-        //            3 => Fern_IFS(),
-        //            _ => new IFSGenerator { Name = "Пользовательский IFS" }
-        //        };
-        //    }
+        public static IFSGenerator GetIFS(int index)
+        {
+            return index switch
+            {
+                0 => Sierpinski_IFS(),
+                1 => Koch_IFS(),
+                2 => Dragon_IFS(),
+                3 => Fern_IFS(),
+                _ => new IFSGenerator { Name = "Пользовательский IFS" }
+            };
+        }
 
-        //    private static IFSGenerator Sierpinski_IFS()
-        //        => new IFSGenerator(new[]
-        //        {
-        //            new IFSTransform(0.5, 0,   0,   0.5, 0,    0,     1.0/3, "Низ-лево"),
-        //            new IFSTransform(0.5, 0,   0,   0.5, 0.5,  0,     1.0/3, "Низ-право"),
-        //            new IFSTransform(0.5, 0,   0,   0.5, 0.25, 0.433, 1.0/3, "Верх"),
-        //        })
-        //        { Name = "Треугольник Серпинского" };
+        private static IFSGenerator Sierpinski_IFS()
+            => new IFSGenerator(new[]
+            {
+                    new IFSTransform(0.5, 0,   0,   0.5, 0,    0,     1.0/3, "Низ-лево"),
+                    new IFSTransform(0.5, 0,   0,   0.5, 0.5,  0,     1.0/3, "Низ-право"),
+                    new IFSTransform(0.5, 0,   0,   0.5, 0.25, 0.433, 1.0/3, "Верх"),
+            })
+            { Name = "Треугольник Серпинского" };
 
-        //    private static IFSGenerator Koch_IFS()
-        //    {
-        //        double s = 1.0 / 3.0;
-        //        double c60 = Math.Cos(Math.PI / 3);
-        //        double s60 = Math.Sin(Math.PI / 3);
-        //        return new IFSGenerator(new[]
-        //        {
-        //            new IFSTransform( s,      0,      0,      s,      0,      0,     0.25, "Начало"),
-        //            new IFSTransform( s*c60, -s*s60,  s*s60,  s*c60,  1.0/3,  0,     0.25, "Левый зуб"),
-        //            new IFSTransform( s*c60,  s*s60, -s*s60,  s*c60,  0.5,   s60/3,  0.25, "Правый зуб"),
-        //            new IFSTransform( s,      0,      0,      s,      2.0/3,  0,     0.25, "Конец"),
-        //        })
-        //        { Name = "Кривая Коха" };
-        //    }
+        private static IFSGenerator Koch_IFS()
+        {
+            double s = 1.0 / 3.0;
+            double c60 = Math.Cos(Math.PI / 3);
+            double s60 = Math.Sin(Math.PI / 3);
+            return new IFSGenerator(new[]
+            {
+                    new IFSTransform( s,      0,      0,      s,      0,      0,     0.25, "Начало"),
+                    new IFSTransform( s*c60, -s*s60,  s*s60,  s*c60,  1.0/3,  0,     0.25, "Левый зуб"),
+                    new IFSTransform( s*c60,  s*s60, -s*s60,  s*c60,  0.5,   s60/3,  0.25, "Правый зуб"),
+                    new IFSTransform( s,      0,      0,      s,      2.0/3,  0,     0.25, "Конец"),
+                })
+            { Name = "Кривая Коха" };
+        }
 
-        //    private static IFSGenerator Dragon_IFS()
-        //        => new IFSGenerator(new[]
-        //        {
-        //            new IFSTransform( 0.5, -0.5,  0.5,  0.5, 0.0, 0.0, 0.5, "Первое"),
-        //            new IFSTransform(-0.5,  0.5,  0.5,  0.5, 1.0, 0.0, 0.5, "Второе"),
-        //        })
-        //        { Name = "Дракон Хартера-Хейтуэя" };
+        private static IFSGenerator Dragon_IFS()
+            => new IFSGenerator(new[]
+            {
+                    new IFSTransform( 0.5, -0.5,  0.5,  0.5, 0.0, 0.0, 0.5, "Первое"),
+                    new IFSTransform(-0.5,  0.5,  0.5,  0.5, 1.0, 0.0, 0.5, "Второе"),
+            })
+            { Name = "Дракон Хартера-Хейтуэя" };
 
-        //    private static IFSGenerator Fern_IFS()
-        //        => new IFSGenerator(new[]
-        //        {
-        //            new IFSTransform( 0,     0,      0,      0.16,  0,  0,    0.01, "Стебель"),
-        //            new IFSTransform( 0.85,  0.04,  -0.04,   0.85,  0,  1.60, 0.85, "Листок"),
-        //            new IFSTransform( 0.20, -0.26,   0.23,   0.22,  0,  1.60, 0.07, "Лев.побег"),
-        //            new IFSTransform(-0.15,  0.28,   0.26,   0.24,  0,  0.44, 0.07, "Прав.побег"),
-        //        })
-        //        { Name = "Папоротник Барнсли" };
+        private static IFSGenerator Fern_IFS()
+            => new IFSGenerator(new[]
+            {
+                    new IFSTransform( 0,     0,      0,      0.16,  0,  0,    0.01, "Стебель"),
+                    new IFSTransform( 0.85,  0.04,  -0.04,   0.85,  0,  1.60, 0.85, "Листок"),
+                    new IFSTransform( 0.20, -0.26,   0.23,   0.22,  0,  1.60, 0.07, "Лев.побег"),
+                    new IFSTransform(-0.15,  0.28,   0.26,   0.24,  0,  0.44, 0.07, "Прав.побег"),
+            })
+            { Name = "Папоротник Барнсли" };
 
-        //    // Названия для ComboBox на IFSForm
-        //    public static string[] IFSNames => new[]
-        //    {
-        //        "Треугольник Серпинского",
-        //        "Кривая Коха",
-        //        "Дракон Хартера-Хейтуэя",
-        //        "Папоротник Барнсли",
-        //        "Пользовательский"
-        //    };
-        //}
+        // Названия для ComboBox на IFSForm
+        public static string[] IFSNames => new[]
+        {
+                "Треугольник Серпинского",
+                "Кривая Коха",
+                "Дракон Хартера-Хейтуэя",
+                "Папоротник Барнсли",
+                "Пользовательский"
+            };
+    }
 
-        // =========================================================================
-        //  РЕЗУЛЬТАТ ГЕНЕРАЦИИ
-        // =========================================================================
+    // =========================================================================
+    //  РЕЗУЛЬТАТ ГЕНЕРАЦИИ
+    // =========================================================================
 
         public class GenerationResult
         {
@@ -156,7 +157,7 @@ namespace FractalModeling
         //  ЛОГГЕР РЕЗУЛЬТАТОВ (CSV)
         // =========================================================================
 
-        public static class ResultLogger
+        internal static class ResultLogger
         {
             private const string Header =
                 "Timestamp;FractalName;Method;Iterations;ElapsedMs;" +
@@ -264,4 +265,3 @@ namespace FractalModeling
             }
         }
     }
-}
