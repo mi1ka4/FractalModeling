@@ -33,7 +33,6 @@ namespace Fractal_Modeling
 
         private void Init()
         {
-            // Настройка DataGridView колонок (a b c d e f p Метка)
             SetupGrid();
 
             cmbFractal.Items.Clear();
@@ -62,7 +61,6 @@ namespace Fractal_Modeling
                     HeaderText = col,
                     Name = "col_" + col,
                 };
-                // Метка — шире остальных
                 if (col == "Метка") dc.FillWeight = 200;
                 dgvTransforms.Columns.Add(dc);
             }
@@ -123,35 +121,37 @@ namespace Fractal_Modeling
             try
             {
                 _ifs = BuildIFSFromGrid();
-                int iterations = (int)nudIterations.Value;
+                int N = (int)nudIterations.Value;
 
                 int W = picBox.Width > 10 ? picBox.Width : 600;
                 int H = picBox.Height > 10 ? picBox.Height : 500;
 
                 _bitmap?.Dispose();
                 _bitmap = new Bitmap(W, H);
-
-                // Белый фон
                 using (var g = Graphics.FromImage(_bitmap))
                     g.Clear(Color.White);
 
                 var sw = Stopwatch.StartNew();
-                _ifs.DrawChaosGame(_bitmap, iterations, _dotColor);
+
+                var points = _ifs.DrawChaosGame_WithPoints(_bitmap, N, _dotColor);
+
                 sw.Stop();
 
+                double dim = ResultLogger.EstimateBoxCount_Points(points);
+                
                 picBox.Image = _bitmap;
                 lblTime.Text = $"Время: {sw.ElapsedMilliseconds} мс";
-                lblInfo.Text = $"Итераций: {iterations}  |  Преобразований: {_ifs.Count}";
+                lblInfo.Text = $"Итераций: {N}  |  Точек: {points.Count:N0}  |  D ≈ {dim:F3}";
 
                 ResultLogger.Append(_resultFile, new GenerationResult
                 {
                     FractalName = _ifs.Name,
                     Method = "IFS",
-                    Iterations = iterations,
+                    Iterations = N,
                     ElapsedMs = sw.ElapsedMilliseconds,
-                    ElementCount = iterations,
-                    StringLength = 0,
-                    FractalDim = 0,
+                    ElementCount = points.Count,      
+                    StringLength = 0,              
+                    FractalDim = dim,        
                     Notes = $"Transforms={_ifs.Count}",
                 });
             }

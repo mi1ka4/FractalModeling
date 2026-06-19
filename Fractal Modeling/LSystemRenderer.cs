@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Drawing.Imaging;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using FractalModeling;
 
-namespace Fractal_Modeling
+namespace FractalModeling
 {
+    
     public static class LSystemRenderer
     {
 
         private const int BATCH_SIZE = 2_000;
 
-
+        
         public static Task RenderAsync(
             LSystem ls,
             int iterations,
@@ -21,23 +21,34 @@ namespace Fractal_Modeling
             int bitmapHeight,
             Color penColor,
             Action<Bitmap, int> progressCallback,
-            Action<Bitmap, int, long, bool> completedCallback,
+            Action<Bitmap, int, long, List<(PointF from, PointF to)>?, long, bool> completedCallback,
             CancellationToken ct = default)
         {
             return Task.Run(() =>
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                // ── 1. Генерируем строку (это тоже может занять время при n=12) ──
                 string sentence;
-                try { sentence = ls.Generate(iterations); }
-                catch (OperationCanceledException) { completedCallback(null, 0, 0, true); return; }
+                try
+                {
+                    sentence = ls.Generate(iterations);
+                }
+                catch
+                {
+                    completedCallback(null!, 0, 0, null, 0, true);
+                    return;
+                }
 
-                if (ct.IsCancellationRequested) { completedCallback(null, 0, 0, true); return; }
+                if (ct.IsCancellationRequested)
+                {
+                    completedCallback(null!, 0, 0, null, 0, true);
+                    return;
+                }
 
-                // ── 2. Вычисляем автомасштаб ──────────────────────────────────
+                long sentenceLength = sentence.Length;
+
                 var bbox = ls.ComputeBoundingBox(iterations, 0f);
-                float W = bitmapWidth, H = bitmapHeight;
+                int W = bitmapWidth, H = bitmapHeight;
                 float margin = 20f;
                 float scaleX = bbox.Width > 0 ? (W - 2 * margin) / bbox.Width : 1f;
                 float scaleY = bbox.Height > 0 ? (H - 2 * margin) / bbox.Height : 1f;
@@ -45,133 +56,83 @@ namespace Fractal_Modeling
                 float sx = margin - bbox.X * scale;
                 float sy = margin - bbox.Y * scale;
 
-                // ── 3. Создаём Bitmap и лочим пиксели ─────────────────────────
-                var bmp = new Bitmap((int)W, (int)H, PixelFormat.Format32bppArgb);
 
-                // Заливка белым
-                using (var g = Graphics.FromImage(bmp))
-                    g.Clear(Color.White);
-
-                int argb = penColor.ToArgb();
-                int totalLines = 0;
-
-                // ── 4. Интерпретируем строку и рисуем батчами ─────────────────
                 float savedStep = ls.StepSize;
                 ls.StepSize = scale;
+                var lines = ls.Interpret(sentence, sx, sy, 0f);
+                ls.StepSize = savedStep;
 
-                // Состояние черепашки
-                float x = sx;
-                float y = sy;
-                float angle = 0f;
-                float step = ls.StepSize;
-                float dRad = ls.Delta * MathF.PI / 180f;
-                var stack = new Stack<(float x, float y, float angle, float step)>();
-                var rnd = new Random();
+                if (ct.IsCancellationRequested)
+                {
+                    completedCallback(null!, 0, sentenceLength, null, 0, true);
+                    return;
+                }
 
-                // Для батчевой отрисовки — лочим/анлочим по батчам
+                var bmp = new Bitmap(W, H, PixelFormat.Format32bppArgb);
+                int argb = penColor.ToArgb();
+                int total = 0;
+                int batch = 0;
+
+                using (var gClear = Graphics.FromImage(bmp))
+                    gClear.Clear(Color.White);
+
                 BitmapData? bmpData = null;
-                int batchCount = 0;
 
-                void LockBmp()
-                {
-                    bmpData = bmp.LockBits(
-                        new Rectangle(0, 0, bmp.Width, bmp.Height),
-                        ImageLockMode.ReadWrite,
-                        PixelFormat.Format32bppArgb);
-                }
+                void Lock() => bmpData = bmp.LockBits(
+                    new Rectangle(0, 0, W, H), ImageLockMode.ReadWrite,
+                    PixelFormat.Format32bppArgb);
+                void Unlock() { if (bmpData != null) { bmp.UnlockBits(bmpData); bmpData = null; } }
 
-                void UnlockBmp()
-                {
-                    if (bmpData != null) { bmp.UnlockBits(bmpData); bmpData = null; }
-                }
+                Lock();
 
-                LockBmp();
-
-                foreach (char c in sentence)
+                foreach (var (from, to) in lines)
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        UnlockBmp();
+                        Unlock();
                         ls.StepSize = savedStep;
-                        completedCallback(bmp, totalLines, sw.ElapsedMilliseconds, true);
+
+                        completedCallback(bmp, total, sentenceLength, null,
+                            sw.ElapsedMilliseconds, true);
                         return;
                     }
 
-                    float s = step;
-                    if (ls.StepVariance > 0)
-                        s *= 1f + (float)(rnd.NextDouble() * 2 - 1) * ls.StepVariance / 100f;
-
-                    switch (c)
+                    unsafe
                     {
-                        case 'F':
-                        case 'G':
-                        case 'A':
-                        case 'B':
-                            {
-                                float nx = x + s * MathF.Cos(angle);
-                                float ny = y - s * MathF.Sin(angle);
+                        DrawLineBresenham(
+                            (int*)bmpData!.Scan0.ToPointer(),
+                            W, H,
+                            (int)from.X, (int)from.Y,
+                            (int)to.X, (int)to.Y,
+                            argb);
+                    }
 
-                                // Рисуем линию алгоритмом Брезенхема прямо в пиксели
-                                unsafe
-                                {
-                                    DrawLineBresenham(
-                                        (int*)bmpData!.Scan0.ToPointer(),
-                                        bmp.Width, bmp.Height,
-                                        (int)x, (int)y, (int)nx, (int)ny,
-                                        argb);
-                                }
+                    total++;
+                    batch++;
 
-                                x = nx; y = ny;
-                                step += ls.StepSize * ls.StepGrowth / 100f;
-                                totalLines++;
-                                batchCount++;
-
-                                // Каждые BATCH_SIZE линий — отправляем промежуточный результат
-                                if (batchCount >= BATCH_SIZE)
-                                {
-                                    batchCount = 0;
-                                    UnlockBmp();
-
-                                    // Отправляем КОПИЮ, чтобы UI мог её спокойно показывать
-                                    // пока мы продолжаем рисовать в оригинал
-                                    var preview = (Bitmap)bmp.Clone();
-                                    progressCallback(preview, totalLines);
-
-                                    LockBmp();
-                                }
-                                break;
-                            }
-                        case 'f':
-                            x += s * MathF.Cos(angle);
-                            y -= s * MathF.Sin(angle);
-                            break;
-                        case '+': angle += dRad; break;
-                        case '-': angle -= dRad; break;
-                        case '|': angle += MathF.PI; break;
-                        case '[': stack.Push((x, y, angle, step)); break;
-                        case ']':
-                            if (stack.Count > 0) (x, y, angle, step) = stack.Pop();
-                            break;
+                    if (batch >= BATCH_SIZE)
+                    {
+                        batch = 0;
+                        Unlock();
+                        var preview = (Bitmap)bmp.Clone();
+                        progressCallback(preview, total);
+                        Lock();
                     }
                 }
 
-                UnlockBmp();
-                ls.StepSize = savedStep;
+                Unlock();
                 sw.Stop();
 
-                completedCallback(bmp, totalLines, sw.ElapsedMilliseconds, false);
+                completedCallback(bmp, total, sentenceLength, lines,
+                    sw.ElapsedMilliseconds, false);
 
             }, ct);
         }
 
         // ── Алгоритм Брезенхема ───────────────────────────────────────────────
-        // Рисует отрезок напрямую в массив пикселей без вызовов GDI+.
-        // unsafe — прямой доступ к памяти Bitmap через указатель.
-
         private static unsafe void DrawLineBresenham(
             int* pixels, int width, int height,
-            int x0, int y0, int x1, int y1,
-            int color)
+            int x0, int y0, int x1, int y1, int color)
         {
             int dx = Math.Abs(x1 - x0);
             int dy = -Math.Abs(y1 - y0);
@@ -181,12 +142,10 @@ namespace Fractal_Modeling
 
             while (true)
             {
-                // Запись пикселя — только если в пределах холста
                 if ((uint)x0 < (uint)width && (uint)y0 < (uint)height)
                     pixels[y0 * width + x0] = color;
 
                 if (x0 == x1 && y0 == y1) break;
-
                 int e2 = err * 2;
                 if (e2 >= dy) { err += dy; x0 += sx; }
                 if (e2 <= dx) { err += dx; y0 += sy; }

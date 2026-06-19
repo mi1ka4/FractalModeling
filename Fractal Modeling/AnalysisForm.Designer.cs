@@ -33,9 +33,9 @@
             btnGoIFS = new Button();
             btnGoLSystem = new Button();
             label4 = new Label();
-            cmbMetric = new ComboBox();
+            cmbMethodFilter = new ComboBox();
             label3 = new Label();
-            cmbFilter = new ComboBox();
+            cmbFractalFilter = new ComboBox();
             label2 = new Label();
             btnRefresh = new Button();
             btnRemoveFile = new Button();
@@ -43,18 +43,37 @@
             lstFiles = new ListBox();
             label1 = new Label();
             tabControl = new TabControl();
-            tabPage1 = new TabPage();
+            tabTable = new TabPage();
             dgvResults = new DataGridView();
-            tabPage2 = new TabPage();
-            pnlChart = new Panel();
-            tabPage3 = new TabPage();
+            tabH1 = new TabPage();
+            panelH1Top = new Panel();
+            radH1Memory = new RadioButton();
+            radH1Time = new RadioButton();
+            pnlH1 = new Panel();
+            tabH2 = new TabPage();
+            panelH2Left = new Panel();
+            btnH2RemovePair = new Button();
+            btnH2AddPair = new Button();
+            lstH2Pairs = new ListBox();
+            pnlH2 = new Panel();
+            tabH3 = new TabPage();
+            panelH3Top = new Panel();
+            cmbH3Fractal = new ComboBox();
+            label5 = new Label();
+            pnlH3 = new Panel();
+            tabSummary = new TabPage();
             rtbSummary = new RichTextBox();
             panel1.SuspendLayout();
             tabControl.SuspendLayout();
-            tabPage1.SuspendLayout();
+            tabTable.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvResults).BeginInit();
-            tabPage2.SuspendLayout();
-            tabPage3.SuspendLayout();
+            tabH1.SuspendLayout();
+            panelH1Top.SuspendLayout();
+            tabH2.SuspendLayout();
+            panelH2Left.SuspendLayout();
+            tabH3.SuspendLayout();
+            panelH3Top.SuspendLayout();
+            tabSummary.SuspendLayout();
             SuspendLayout();
             // 
             // panel1
@@ -63,9 +82,9 @@
             panel1.Controls.Add(btnGoIFS);
             panel1.Controls.Add(btnGoLSystem);
             panel1.Controls.Add(label4);
-            panel1.Controls.Add(cmbMetric);
+            panel1.Controls.Add(cmbMethodFilter);
             panel1.Controls.Add(label3);
-            panel1.Controls.Add(cmbFilter);
+            panel1.Controls.Add(cmbFractalFilter);
             panel1.Controls.Add(label2);
             panel1.Controls.Add(btnRefresh);
             panel1.Controls.Add(btnRemoveFile);
@@ -117,43 +136,43 @@
             label4.TabIndex = 9;
             label4.Text = "Навигация";
             // 
-            // cmbMetric
+            // cmbMethodFilter
             // 
-            cmbMetric.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbMetric.FormattingEnabled = true;
-            cmbMetric.Location = new Point(22, 431);
-            cmbMetric.Name = "cmbMetric";
-            cmbMetric.Size = new Size(260, 33);
-            cmbMetric.TabIndex = 8;
-            cmbMetric.SelectedIndexChanged += cmbMetric_SelectedIndexChanged;
+            cmbMethodFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbMethodFilter.FormattingEnabled = true;
+            cmbMethodFilter.Location = new Point(22, 431);
+            cmbMethodFilter.Name = "cmbMethodFilter";
+            cmbMethodFilter.Size = new Size(260, 33);
+            cmbMethodFilter.TabIndex = 8;
+            cmbMethodFilter.SelectedIndexChanged += cmbMethodFilter_SelectedIndexChanged;
             // 
             // label3
             // 
             label3.AutoSize = true;
             label3.Location = new Point(22, 390);
             label3.Name = "label3";
-            label3.Size = new Size(192, 25);
+            label3.Size = new Size(165, 25);
             label3.TabIndex = 7;
-            label3.Text = "Метрика для графика:";
+            label3.Text = "Фильтр по методу:\r\n";
             // 
-            // cmbFilter
+            // cmbFractalFilter
             // 
-            cmbFilter.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbFilter.FormattingEnabled = true;
-            cmbFilter.Location = new Point(22, 334);
-            cmbFilter.Name = "cmbFilter";
-            cmbFilter.Size = new Size(260, 33);
-            cmbFilter.TabIndex = 6;
-            cmbFilter.SelectedIndexChanged += cmbFilter_SelectedIndexChanged;
+            cmbFractalFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbFractalFilter.FormattingEnabled = true;
+            cmbFractalFilter.Location = new Point(22, 334);
+            cmbFractalFilter.Name = "cmbFractalFilter";
+            cmbFractalFilter.Size = new Size(260, 33);
+            cmbFractalFilter.TabIndex = 6;
+            cmbFractalFilter.SelectedIndexChanged += cmbFractalFilter_SelectedIndexChanged;
             // 
             // label2
             // 
             label2.AutoSize = true;
             label2.Location = new Point(22, 293);
             label2.Name = "label2";
-            label2.Size = new Size(165, 25);
+            label2.Size = new Size(146, 25);
             label2.TabIndex = 5;
-            label2.Text = "Фильтр по методу:";
+            label2.Text = "Фильтр фрактал:";
             // 
             // btnRefresh
             // 
@@ -205,9 +224,11 @@
             // 
             // tabControl
             // 
-            tabControl.Controls.Add(tabPage1);
-            tabControl.Controls.Add(tabPage2);
-            tabControl.Controls.Add(tabPage3);
+            tabControl.Controls.Add(tabTable);
+            tabControl.Controls.Add(tabH1);
+            tabControl.Controls.Add(tabH2);
+            tabControl.Controls.Add(tabH3);
+            tabControl.Controls.Add(tabSummary);
             tabControl.Dock = DockStyle.Fill;
             tabControl.Location = new Point(300, 0);
             tabControl.Name = "tabControl";
@@ -215,16 +236,16 @@
             tabControl.Size = new Size(878, 694);
             tabControl.TabIndex = 1;
             // 
-            // tabPage1
+            // tabTable
             // 
-            tabPage1.Controls.Add(dgvResults);
-            tabPage1.Location = new Point(4, 34);
-            tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(870, 656);
-            tabPage1.TabIndex = 0;
-            tabPage1.Text = "Таблица";
-            tabPage1.UseVisualStyleBackColor = true;
+            tabTable.Controls.Add(dgvResults);
+            tabTable.Location = new Point(4, 34);
+            tabTable.Name = "tabTable";
+            tabTable.Padding = new Padding(3);
+            tabTable.Size = new Size(870, 656);
+            tabTable.TabIndex = 0;
+            tabTable.Text = "Таблица";
+            tabTable.UseVisualStyleBackColor = true;
             // 
             // dgvResults
             // 
@@ -240,36 +261,176 @@
             dgvResults.Size = new Size(864, 650);
             dgvResults.TabIndex = 0;
             // 
-            // tabPage2
+            // tabH1
             // 
-            tabPage2.Controls.Add(pnlChart);
-            tabPage2.Location = new Point(4, 34);
-            tabPage2.Name = "tabPage2";
-            tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(870, 656);
-            tabPage2.TabIndex = 1;
-            tabPage2.Text = "График";
-            tabPage2.UseVisualStyleBackColor = true;
+            tabH1.Controls.Add(pnlH1);
+            tabH1.Controls.Add(panelH1Top);
+            tabH1.Location = new Point(4, 34);
+            tabH1.Name = "tabH1";
+            tabH1.Padding = new Padding(3);
+            tabH1.Size = new Size(870, 656);
+            tabH1.TabIndex = 1;
+            tabH1.Text = "H1: T(n)";
+            tabH1.UseVisualStyleBackColor = true;
             // 
-            // pnlChart
+            // panelH1Top
             // 
-            pnlChart.BackColor = Color.White;
-            pnlChart.Dock = DockStyle.Fill;
-            pnlChart.Location = new Point(3, 3);
-            pnlChart.Name = "pnlChart";
-            pnlChart.Size = new Size(864, 650);
-            pnlChart.TabIndex = 0;
-            pnlChart.Paint += pnlChart_Paint;
+            panelH1Top.Controls.Add(radH1Memory);
+            panelH1Top.Controls.Add(radH1Time);
+            panelH1Top.Dock = DockStyle.Top;
+            panelH1Top.Location = new Point(3, 3);
+            panelH1Top.Name = "panelH1Top";
+            panelH1Top.Size = new Size(864, 32);
+            panelH1Top.TabIndex = 1;
             // 
-            // tabPage3
+            // radH1Memory
             // 
-            tabPage3.Controls.Add(rtbSummary);
-            tabPage3.Location = new Point(4, 34);
-            tabPage3.Name = "tabPage3";
-            tabPage3.Size = new Size(870, 656);
-            tabPage3.TabIndex = 2;
-            tabPage3.Text = "Статистика";
-            tabPage3.UseVisualStyleBackColor = true;
+            radH1Memory.AutoSize = true;
+            radH1Memory.Location = new Point(467, 0);
+            radH1Memory.Name = "radH1Memory";
+            radH1Memory.Size = new Size(141, 29);
+            radH1Memory.TabIndex = 1;
+            radH1Memory.TabStop = true;
+            radH1Memory.Text = "radioButton2";
+            radH1Memory.UseVisualStyleBackColor = true;
+            // 
+            // radH1Time
+            // 
+            radH1Time.AutoSize = true;
+            radH1Time.Location = new Point(24, 1);
+            radH1Time.Name = "radH1Time";
+            radH1Time.Size = new Size(141, 29);
+            radH1Time.TabIndex = 0;
+            radH1Time.TabStop = true;
+            radH1Time.Text = "radioButton1";
+            radH1Time.UseVisualStyleBackColor = true;
+            // 
+            // pnlH1
+            // 
+            pnlH1.BackColor = Color.White;
+            pnlH1.Dock = DockStyle.Fill;
+            pnlH1.Location = new Point(3, 35);
+            pnlH1.Name = "pnlH1";
+            pnlH1.Size = new Size(864, 618);
+            pnlH1.TabIndex = 0;
+            // 
+            // tabH2
+            // 
+            tabH2.Controls.Add(pnlH2);
+            tabH2.Controls.Add(panelH2Left);
+            tabH2.Location = new Point(4, 34);
+            tabH2.Name = "tabH2";
+            tabH2.Size = new Size(870, 656);
+            tabH2.TabIndex = 3;
+            tabH2.Text = "H2: Память";
+            tabH2.UseVisualStyleBackColor = true;
+            // 
+            // panelH2Left
+            // 
+            panelH2Left.Controls.Add(btnH2RemovePair);
+            panelH2Left.Controls.Add(btnH2AddPair);
+            panelH2Left.Controls.Add(lstH2Pairs);
+            panelH2Left.Dock = DockStyle.Left;
+            panelH2Left.Location = new Point(0, 0);
+            panelH2Left.Name = "panelH2Left";
+            panelH2Left.Size = new Size(200, 656);
+            panelH2Left.TabIndex = 1;
+            // 
+            // btnH2RemovePair
+            // 
+            btnH2RemovePair.Location = new Point(16, 284);
+            btnH2RemovePair.Name = "btnH2RemovePair";
+            btnH2RemovePair.Size = new Size(174, 34);
+            btnH2RemovePair.TabIndex = 2;
+            btnH2RemovePair.Text = "Удалить пару";
+            btnH2RemovePair.UseVisualStyleBackColor = true;
+            btnH2RemovePair.Click += btnH2RemovePair_Click;
+            // 
+            // btnH2AddPair
+            // 
+            btnH2AddPair.Location = new Point(16, 209);
+            btnH2AddPair.Name = "btnH2AddPair";
+            btnH2AddPair.Size = new Size(174, 59);
+            btnH2AddPair.TabIndex = 1;
+            btnH2AddPair.Text = "Добавить пару файлов";
+            btnH2AddPair.UseVisualStyleBackColor = true;
+            btnH2AddPair.Click += btnH2AddPair_Click;
+            // 
+            // lstH2Pairs
+            // 
+            lstH2Pairs.FormattingEnabled = true;
+            lstH2Pairs.ItemHeight = 25;
+            lstH2Pairs.Location = new Point(10, 15);
+            lstH2Pairs.Name = "lstH2Pairs";
+            lstH2Pairs.Size = new Size(180, 179);
+            lstH2Pairs.TabIndex = 0;
+            // 
+            // pnlH2
+            // 
+            pnlH2.BackColor = Color.White;
+            pnlH2.Dock = DockStyle.Fill;
+            pnlH2.Location = new Point(200, 0);
+            pnlH2.Name = "pnlH2";
+            pnlH2.Size = new Size(670, 656);
+            pnlH2.TabIndex = 0;
+            // 
+            // tabH3
+            // 
+            tabH3.Controls.Add(pnlH3);
+            tabH3.Controls.Add(panelH3Top);
+            tabH3.Location = new Point(4, 34);
+            tabH3.Name = "tabH3";
+            tabH3.Size = new Size(870, 656);
+            tabH3.TabIndex = 4;
+            tabH3.Text = "H3: D";
+            tabH3.UseVisualStyleBackColor = true;
+            // 
+            // panelH3Top
+            // 
+            panelH3Top.Controls.Add(cmbH3Fractal);
+            panelH3Top.Controls.Add(label5);
+            panelH3Top.Dock = DockStyle.Top;
+            panelH3Top.Location = new Point(0, 0);
+            panelH3Top.Name = "panelH3Top";
+            panelH3Top.Size = new Size(870, 36);
+            panelH3Top.TabIndex = 1;
+            // 
+            // cmbH3Fractal
+            // 
+            cmbH3Fractal.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbH3Fractal.FormattingEnabled = true;
+            cmbH3Fractal.Location = new Point(127, 2);
+            cmbH3Fractal.Name = "cmbH3Fractal";
+            cmbH3Fractal.Size = new Size(182, 33);
+            cmbH3Fractal.TabIndex = 1;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(25, 3);
+            label5.Name = "label5";
+            label5.Size = new Size(83, 25);
+            label5.TabIndex = 0;
+            label5.Text = "Фрактал:";
+            // 
+            // pnlH3
+            // 
+            pnlH3.BackColor = Color.White;
+            pnlH3.Dock = DockStyle.Fill;
+            pnlH3.Location = new Point(0, 36);
+            pnlH3.Name = "pnlH3";
+            pnlH3.Size = new Size(870, 620);
+            pnlH3.TabIndex = 0;
+            // 
+            // tabSummary
+            // 
+            tabSummary.Controls.Add(rtbSummary);
+            tabSummary.Location = new Point(4, 34);
+            tabSummary.Name = "tabSummary";
+            tabSummary.Size = new Size(870, 656);
+            tabSummary.TabIndex = 2;
+            tabSummary.Text = "Статистика";
+            tabSummary.UseVisualStyleBackColor = true;
             // 
             // rtbSummary
             // 
@@ -294,10 +455,17 @@
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
             tabControl.ResumeLayout(false);
-            tabPage1.ResumeLayout(false);
+            tabTable.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvResults).EndInit();
-            tabPage2.ResumeLayout(false);
-            tabPage3.ResumeLayout(false);
+            tabH1.ResumeLayout(false);
+            panelH1Top.ResumeLayout(false);
+            panelH1Top.PerformLayout();
+            tabH2.ResumeLayout(false);
+            panelH2Left.ResumeLayout(false);
+            tabH3.ResumeLayout(false);
+            panelH3Top.ResumeLayout(false);
+            panelH3Top.PerformLayout();
+            tabSummary.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -309,20 +477,34 @@
         private Button btnRemoveFile;
         private Button btnAddFile;
         private Button btnRefresh;
-        private ComboBox cmbFilter;
+        private ComboBox cmbFractalFilter;
         private Label label2;
-        private ComboBox cmbMetric;
+        private ComboBox cmbMethodFilter;
         private Label label3;
         private Button btnGoIFS;
         private Button btnGoLSystem;
         private Label label4;
         private TabControl tabControl;
-        private TabPage tabPage1;
-        private TabPage tabPage2;
+        private TabPage tabTable;
+        private TabPage tabH1;
         private Button btnExport;
         private DataGridView dgvResults;
-        private Panel pnlChart;
-        private TabPage tabPage3;
+        private Panel pnlH1;
+        private TabPage tabSummary;
         private RichTextBox rtbSummary;
+        private TabPage tabH2;
+        private TabPage tabH3;
+        private Panel pnlH2;
+        private Panel pnlH3;
+        private Panel panelH2Left;
+        private Button btnH2RemovePair;
+        private Button btnH2AddPair;
+        private ListBox lstH2Pairs;
+        private Panel panelH1Top;
+        private RadioButton radH1Memory;
+        private RadioButton radH1Time;
+        private Panel panelH3Top;
+        private ComboBox cmbH3Fractal;
+        private Label label5;
     }
 }

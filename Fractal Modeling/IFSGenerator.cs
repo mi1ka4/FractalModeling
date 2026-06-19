@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Drawing.Imaging;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace Fractal_Modeling
+namespace FractalModeling
 {
-
     public class IFSTransform
     {
         public double A, B, C, D, E, F;
@@ -16,49 +15,30 @@ namespace Fractal_Modeling
 
         public IFSTransform(double a, double b, double c, double d,
                              double e, double f, double probability, string label = "")
-        {
-            A = a; B = b; C = c; D = d;
-            E = e; F = f;
-            Probability = probability;
-            Label = label;
-        }
-
-        public (double x, double y) Apply(double x, double y)
-            => (A * x + B * y + E, C * x + D * y + F);
+        { A = a; B = b; C = c; D = d; E = e; F = f; Probability = probability; Label = label; }
     }
 
     public class IFSGenerator
     {
         public string Name { get; set; } = "Custom IFS";
-
         private readonly List<IFSTransform> _transforms = new();
-
-        // кэш bounding box
         private double _minX, _maxX, _minY, _maxY;
         private bool _boundsValid = false;
 
         public IFSGenerator() { }
-
-        public IFSGenerator(IEnumerable<IFSTransform> transforms)
-            => _transforms.AddRange(transforms);
+        public IFSGenerator(IEnumerable<IFSTransform> transforms) => _transforms.AddRange(transforms);
 
         public void AddTransform(IFSTransform t) { _transforms.Add(t); _boundsValid = false; }
-        public void RemoveAt(int index) { _transforms.RemoveAt(index); _boundsValid = false; }
+        public void RemoveAt(int i) { _transforms.RemoveAt(i); _boundsValid = false; }
         public void Clear() { _transforms.Clear(); _boundsValid = false; }
         public int Count => _transforms.Count;
         public IFSTransform Get(int i) => _transforms[i];
 
-        // ── Chaos Game ────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Рисует аттрактор IFS на Bitmap методом случайных итераций.
-        /// Использует LockBits для быстрой записи пикселей.
-        /// </summary>
         public void DrawChaosGame(Bitmap bmp, int iterations, Color color, int warmup = 25)
         {
             if (_transforms.Count == 0)
                 throw new InvalidOperationException("Нет аффинных преобразований.");
-
             if (!_boundsValid) ComputeBounds(60_000);
 
             double[] cumP = BuildCumulative();
@@ -69,22 +49,19 @@ namespace Fractal_Modeling
             double margin = 0.06;
             double rx = _maxX - _minX; if (rx < 1e-9) rx = 1;
             double ry = _maxY - _minY; if (ry < 1e-9) ry = 1;
-            double scale = Math.Min(W / (rx * (1 + 2 * margin)),
-                                    H / (ry * (1 + 2 * margin)));
+            double scale = Math.Min(W / (rx * (1 + 2 * margin)), H / (ry * (1 + 2 * margin)));
             double offX = -(_minX - rx * margin) * scale;
             double offY = H + (_minY - ry * margin) * scale;
 
             int argb = color.ToArgb();
             var data = bmp.LockBits(new Rectangle(0, 0, W, H),
-                                     ImageLockMode.ReadWrite,
-                                     PixelFormat.Format32bppArgb);
+                ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             unsafe
             {
                 int* ptr = (int*)data.Scan0.ToPointer();
                 for (int k = 0; k < iterations + warmup; k++)
                 {
-                    int idx = Choose(rnd.NextDouble(), cumP);
-                    var t = _transforms[idx];
+                    var t = _transforms[Choose(rnd.NextDouble(), cumP)];
                     double nx = t.A * x + t.B * y + t.E;
                     double ny = t.C * x + t.D * y + t.F;
                     x = nx; y = ny;
@@ -100,7 +77,58 @@ namespace Fractal_Modeling
             bmp.UnlockBits(data);
         }
 
-        // ── Вспомогательные ───────────────────────────────────────────────────
+        // ── Рисование + возврат точек (для box-counting) ─────────────────────
+
+
+        public List<PointF> DrawChaosGame_WithPoints(
+            Bitmap bmp, int iterations, Color color, int warmup = 25)
+        {
+            if (_transforms.Count == 0)
+                throw new InvalidOperationException("Нет аффинных преобразований.");
+            if (!_boundsValid) ComputeBounds(60_000);
+
+            double[] cumP = BuildCumulative();
+            var rnd = new Random(); // или сид 42
+            double x = 0, y = 0;
+
+            int W = bmp.Width, H = bmp.Height;
+            double margin = 0.06;
+            double rx = _maxX - _minX; if (rx < 1e-9) rx = 1;
+            double ry = _maxY - _minY; if (ry < 1e-9) ry = 1;
+            double scale = Math.Min(W / (rx * (1 + 2 * margin)), H / (ry * (1 + 2 * margin)));
+            double offX = -(_minX - rx * margin) * scale;
+            double offY = H + (_minY - ry * margin) * scale;
+
+            int argb = color.ToArgb();
+            var points = new List<PointF>(iterations);
+
+            var data = bmp.LockBits(new Rectangle(0, 0, W, H),
+                ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            unsafe
+            {
+                int* ptr = (int*)data.Scan0.ToPointer();
+                for (int k = 0; k < iterations + warmup; k++)
+                {
+                    var t = _transforms[Choose(rnd.NextDouble(), cumP)];
+                    double nx = t.A * x + t.B * y + t.E;
+                    double ny = t.C * x + t.D * y + t.F;
+                    x = nx; y = ny;
+                    if (k >= warmup)
+                    {
+                        int px = (int)(x * scale + offX);
+                        int py = (int)(-y * scale + offY);
+                        if (px >= 0 && px < W && py >= 0 && py < H)
+                        {
+                            ptr[py * W + px] = argb;
+                            points.Add(new PointF((float)px, (float)py));
+                        }
+                    }
+                }
+            }
+            bmp.UnlockBits(data);
+            return points;
+        }
+
 
         private double[] BuildCumulative()
         {
@@ -140,7 +168,6 @@ namespace Fractal_Modeling
             _boundsValid = true;
         }
 
-        // ── Сериализация ──────────────────────────────────────────────────────
 
         public void SaveToFile(string path)
         {
@@ -148,13 +175,11 @@ namespace Fractal_Modeling
             using var w = new StreamWriter(path, false, Encoding.UTF8);
             w.WriteLine($"NAME={Name}");
             foreach (var t in _transforms)
-                w.WriteLine(string.Join("|",
-                    "T",
+                w.WriteLine(string.Join("|", "T",
                     t.A.ToString("F6", ci), t.B.ToString("F6", ci),
                     t.C.ToString("F6", ci), t.D.ToString("F6", ci),
                     t.E.ToString("F6", ci), t.F.ToString("F6", ci),
-                    t.Probability.ToString("F6", ci),
-                    t.Label));
+                    t.Probability.ToString("F6", ci), t.Label));
         }
 
         public static IFSGenerator LoadFromFile(string path)

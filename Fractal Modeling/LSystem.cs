@@ -57,16 +57,6 @@ namespace FractalModeling
 
         // ── Черепашья интерпретация ───────────────────────────────────────────
 
-        /// Интерпретирует строку и возвращает список отрезков.
-        /// Поддерживаемые команды:
-        ///   F/G/A/B — шаг вперёд с рисованием
-        ///   f       — шаг вперёд без рисования
-        ///   +       — поворот влево на Delta градусов
-        ///   -       — поворот вправо на Delta градусов
-        ///   [       — сохранить состояние в стек
-        ///   ]       — восстановить состояние из стека
-        ///   |       — разворот на 180°
-        ///   X,Y,... — нетерминалы, игнорируются
         public List<(PointF from, PointF to)> Interpret(
             string sentence, float startX, float startY, float startAngleDeg)
         {
@@ -138,7 +128,6 @@ namespace FractalModeling
             return new RectangleF(minX, minY, maxX - minX, maxY - minY);
         }
 
-        // ── Сериализация ──────────────────────────────────────────────────────
 
         public void SaveToFile(string path)
         {
